@@ -1,19 +1,22 @@
 const path = require("path");
 const fs = require("fs");
 const chalk = require("chalk");
+const { rows, columns } = process.stdout;
+module.exports.rows = rows;
+module.exports.columns = columns;
 
 let io = [];
 populate_io();
 function populate_io() {
     io = [];
-    for (let i = process.stdout.rows; i > 0; i--) {
-        io.push(Array(process.stdout.columns).fill(" "));
+    for (let i = rows; i > 0; i--) {
+        if (i != 1) {
+            io.push(Array(columns).fill(" "));
+        } else {
+            io.push(Array(columns - 10).fill(" "));
+        }
     }
 }
-process.stdout.on("resize", () => {
-    populate_io();
-});
-
 module.exports.set_char = (y, x, char = null) => {
     if (y < 0) {
         y = process.stdout.columns + y;
@@ -36,7 +39,7 @@ function update_screen() {
             to_send = last;
         }
     });
-    setTimeout(update_screen, 10);
+    setTimeout(update_screen);
 }
 
 update_screen()
@@ -47,5 +50,3 @@ module.exports.write_str = (x, y, str) => {
         module.exports.set_char(x + i, y, str[i]);
     }
 }
-
-console.clear();
