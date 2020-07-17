@@ -4,7 +4,7 @@ const { resolve } = require("path");
 let input = "";
 let cursor = (c) => new Date().getTime() % 1000 < 500 ? chalk.bgWhite(c) : chalk.bgGray(c);
 let submit = () => { }
-
+let keypress = (k) => { }
 
 
 
@@ -23,10 +23,16 @@ stdin.setEncoding('utf8');
 // on any data into stdin
 stdin.on('data', function (key) {
     // ctrl-c ( end of text )
+    // io._update();
     console.log(key);
+    io.request_update();
     if (key === '\u0003') {
-        process.exit();
+        process.stdout.cursorTo(0, -1);
+        process.stdout.write(" ".replace(process.stdout.columns * process.stdout.rows))
+        process.stdout.cursorTo(0, -1);
+        process.exit(1);
     }
+    keypress(key);
     if (key === "\b") {
         input = input.substr(0, input.length - 1);
         return;
@@ -41,15 +47,31 @@ stdin.on('data', function (key) {
     }
     input += g;
 });
-
-module.exports = function (x, y, width, question) {
+module.exports.keypress = function (help = "press any key to continue...") {
+    return new Promise((resolve) => {
+        input = "";
+        for (let i = 0; i < io.columns; i++) {
+            io.set_char(i, -1, ' ');
+        }
+        io.write_str(0, io.rows - 1, help)
+        keypress = (key) => {
+            resolve(key);
+            for (let i = 0; i < io.columns; i++) {
+                io.set_char(i, -1, ' ');
+            }
+            io.write_str(0, io.rows, " ".repeat(io.columns));
+            keypress = () => { }
+        }
+    });
+}
+module.exports.text = function (x, y, width, help) {
     return new Promise((resolve) => {
         input = "";
 
         for (let i = 0; i < io.columns; i++) {
             io.set_char(i, -1, ' ');
         }
-        io.write_str(0, io.rows - 1, question)
+        io.write_str(0, io.rows - 1, help)
         const id = setInterval(() => {
             for (let i = 0; i < width; i++) {
                 if (i < width) {

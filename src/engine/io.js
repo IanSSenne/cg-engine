@@ -2,6 +2,8 @@ const path = require("path");
 const fs = require("fs");
 const chalk = require("chalk");
 const { rows, columns } = process.stdout;
+let last = "";
+let next_update_id = 0;
 module.exports.rows = rows;
 module.exports.columns = columns;
 
@@ -10,13 +12,11 @@ populate_io();
 function populate_io() {
     io = [];
     for (let i = rows; i > 0; i--) {
-        if (i != 1) {
-            io.push(Array(columns).fill(" "));
-        } else {
-            io.push(Array(columns - 10).fill(" "));
-        }
+        io.push(Array(columns).fill(" "));
     }
+    request_update();
 }
+module.exports.wipe = populate_io;
 module.exports.set_char = (y, x, char = null) => {
     if (y < 0) {
         y = process.stdout.columns + y;
@@ -26,23 +26,27 @@ module.exports.set_char = (y, x, char = null) => {
     }
     if (io[x]) {
         if (io[x][y]) {
-            io[x][y] = char === null ? " " : char;
+            io[x][y] = char === null || char === undefined ? " " : char;
+            next_offset = -2;
+            request_update();
         }
     }
 }
-let last = "";
-function update_screen() {
-    process.stdout.cursorTo(0, -1, () => {
-        let to_send = io.map(row => row.join("")).join("");
-        if (last !== to_send) {
-            process.stdout.write(io.map(row => row.join("")).join(""));
-            to_send = last;
-        }
-    });
-    setTimeout(update_screen);
+function request_update() {
+    clearTimeout(next_update_id);
+    next_update_id = setTimeout(update_screen, 10);
 }
-
-update_screen()
+module.exports.request_update = request_update;
+function update_screen() {
+    let to_send = io.map(row => row.join("")).join("");
+    if (last !== to_send) {
+        process.stdout.cursorTo(0, -1);
+        process.stdout.write(io.map(row => row.join("")).join(""));
+        process.stdout.cursorTo(0, 0);
+        to_send = last;
+    }
+    // next_update_id = setTimeout(update_screen);
+}
 
 module.exports.write_str = (x, y, str) => {
     if (!Array.isArray(str)) str = String(str);
